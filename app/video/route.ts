@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/db";
 import  Video from "@/models/Video";
-import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(){
     try{
@@ -18,4 +19,48 @@ export async function GET(){
               {status: 500}
             )
              }
+    }
+
+    export async function POST(request: NextRequest){
+      try{
+        const session=await getServerSession(authOptions);
+        if(!session){
+          return NextResponse.json({error: "Unauthorized"},{
+            status: 401
+          });
+        }
+        await connectToDatabase()
+        const body: IVedio = await request.json()
+        if(
+            !body.title ||
+            !body.description ||
+             !body.vedioUrl ||
+             !body.thumbnailUrl ||
+             !body.transformation
+        ){
+          return NextResponse.json(
+            {error: "Missing required fields"},
+            {status: 400}
+          );
+        }
+        const videoData = {
+          ...body,
+          controls: body?.controls ?? true,
+          transformation: {
+            height: 1920,
+            width: 1080,
+            quality: body.transformation?.quality?? 100
+          },
+        };
+
+            const newVideo = await Video.create(videoData)
+            return NextResponse.json(newVideo);
+          
+        
+      } catch(error){
+        return NextResponse.json(
+          {error: "Failed to create video"},
+          {status: 500}
+        );
+      }
     }
